@@ -102,8 +102,7 @@ int main(int argc, char *argv[])
         }
 
         // Update timestep size
-        std::cout << smax << "\n";
-        dt = CFL * std::min(geo.dx(), geo.dy()) / smax;
+        dt = CFL * std::min({geo.dx(), geo.dy(), geo.dz()}) / smax;
     }
 
     return 0;
