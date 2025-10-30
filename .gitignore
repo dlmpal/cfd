@@ -1,0 +1,14 @@
+run.sh
+build/
+.vscode/
+
+examples/scalar/
+
+examples/euler1d/run.sh
+examples/euler1d/visualize.py
+examples/euler1d/build/
+examples/euler1d/post/
+
+examples/euler2d/run.sh
+examples/euler2d/build/
+examples/euler2d/post/
