@@ -12,7 +12,7 @@ namespace hc
         GridArray(const Grid &grid, int n_comp, const std::array<int, 3> &n_ghost);
         GridArray(const Grid &grid, int n_comp = 1, int n_ghost = 0);
 
-        Grid grid() const;
+        const Grid &grid() const;
         int n_comp() const;
         int n_ghost(int dir = 0) const;
 

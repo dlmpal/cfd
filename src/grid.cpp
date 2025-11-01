@@ -93,4 +93,9 @@ namespace hc
     {
         return dX_[2];
     }
+    //=============================================================================
+    double GridGeo::cell_center(int idx, int dir) const
+    {
+        return ((double)idx + 0.5) * dX_[dir] + start_[dir];
+    }
 }

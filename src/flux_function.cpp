@@ -59,38 +59,43 @@ namespace hc
         return eos_;
     }
     //=============================================================================
-    double EulerFlux::operator()(std::span<const double> u, std::span<double> f, int dir) const
+    EulerFlux::State EulerFlux::get_state(std::span<const double> u) const
     {
         if ((int)u.size() != n_comp_)
         {
             // big problem !
         }
 
-        // Get state variables
-        const double rho = u[0];
-        std::array<double, 3> v;
-        double KE = 0.0;
+        State state{};
+        state.rho = u[0];
         for (int i = 0; i < dim_; i++)
         {
-            v[i] = u[i + 1] / rho;
-            KE += 0.5 * rho * v[i] * v[i];
+            state.v[i] = u[i + 1] / state.rho;
+            state.KE += state.v[i] * state.v[i];
         }
-        const double E = u[dim_ + 1];
-        const double e = (E - KE) / rho;
-        const double p = eos_->pressure(rho, e);
+        state.KE *= 0.5 * state.rho;
+        state.E = u[dim_ + 1];
+        state.e = (state.E - state.KE) / state.rho;
+        state.p = eos_->pressure(state.rho, state.e);
 
-        // Compute fluxes
-        f[0] = rho * v[dir];
+        return state;
+    }
+    //=============================================================================
+    double EulerFlux::operator()(const State &state, std::span<double> f, int dir) const
+    {
+        f[0] = state.rho * state.v[dir];
         for (int i = 0; i < dim_; i++)
         {
-            f[i + 1] = rho * v[i] * v[dir];
+            f[i + 1] = state.rho * state.v[i] * state.v[dir];
         }
-        f[dir + 1] += p;
-        f[dim_ + 1] = (E + p) * v[dir];
+        f[dir + 1] += state.p;
+        f[dim_ + 1] = (state.E + state.p) * state.v[dir];
 
-        const double speed = std::sqrt(2.0 / rho * KE); /// @todo Check validity
-        const double sound = eos_->sound_speed(rho, p);
-
-        return speed + sound;
+        return std::abs(state.v[dir]) + eos_->sound_speed(state.rho, state.p);
+    }
+    //=============================================================================
+    double EulerFlux::operator()(std::span<const double> u, std::span<double> f, int dir) const
+    {
+        return operator()(get_state(u), f, dir);
     }
 }

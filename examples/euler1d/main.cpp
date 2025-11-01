@@ -11,10 +11,9 @@ extern void save_timestamp(const std::string &filepath, const GridGeo &geo,
 int main(int argc, char *argv[])
 {
     // Simulation parameters
-    const int Nx = 200;
+    const int Nx = 100;
     const int ng = 1;
     const double Lx = 1.0;
-    const double dx = Lx / (double)Nx;
     const double t_start = 0.0;
     const double t_final = 0.25;
     const double CFL = 0.8;
@@ -30,7 +29,6 @@ int main(int argc, char *argv[])
     // State and flux vectors
     GridArray U_new(grid, flux.n_comp(), {ng, 0, 0});
     GridArray U_old(grid, flux.n_comp(), {ng, 0, 0});
-    GridArray Fx(grid.convert({1, 0, 0}), flux.n_comp());
 
     // Initial condition
     jump_ic(geo, eos, U_old);
@@ -40,36 +38,18 @@ int main(int argc, char *argv[])
     // Compute initial timestep size
     double dt = compute_dt_estimate(U_old, geo, flux, CFL);
 
-    // Numerical flux
-    // ForceFlux nflux(&flux, &dx, &dt);
-    RusanovFlux nflux(&flux);
-
     // Maximum wavespeed
     double smax = -1;
 
-    auto rhs_func = [&](const GridArray &S, GridArray &rhs, double time)
-    {
-        // Compute cell slopes
-        GridArray slopes(S.grid(), S.n_comp(), {ng, 0, 0});
-        compute_slopes(S, slopes, 0);
-        slopes.fill_boundary(0);
+    // Numerical flux
+    // ForceFlux nflux(&flux, &geo, &dt);
+    // RusanovFlux nflux(&flux);
+    // HLLFlux nflux(&flux);
+    HLLCFlux nflux(&flux);
 
-        // Compute face fluxes
-        const double smax_ = compute_fluxes(slopes, S, nflux, geo, Fx, dt, 0, false);
-        if (smax_ > smax)
-        {
-            smax = smax_;
-        }
-
-        for (int n = 0; n < S.n_comp(); n++)
-            grid_loop(S.grid(), [&](int i, int j, int k)
-                      { rhs(i, j, k, n) = -1 / dx * (Fx(i + 1, j, k, n) - Fx(i, j, k, n)); });
-    };
-    auto erk = create_erk(U_old, rhs_func, ERKType::rk3);
-
-    // Select times to save solution to file
-    // const std::vector<double> timestamps = {t_final};
-    // int timestamp_idx = 0;
+    // Integrator
+    auto rhs = create_rhs(geo, nflux, smax, true);
+    auto erk = create_erk(U_old, rhs, ERKType::fe);
 
     // Timestepping
     const int plot_int = 5;
@@ -86,15 +66,9 @@ int main(int argc, char *argv[])
         erk.advance(U_old, U_new, t, dt);
         GridArray::copy(U_new, U_old);
 
-        // Save solution to file if required
-        // if (std::abs(t - timestamps[timestamp_idx]) < 0.5 * dt)
-        // {
-        //     save_timestamp(std::format("post/solution_{}", timestamp_idx + 1), geo, U_new);
-        //     timestamp_idx++;
-        // }
-
         if (timestep % plot_int == 0)
         {
+            save_timestamp(std::format("post/solution_{}", timestep), geo, U_new);
             writeVTK(std::format("post/solution_{}.vtk", timestep), geo, U_new, {"rho", "momx", "E"});
         }
 
@@ -119,10 +93,9 @@ void jump_ic(const GridGeo &geo, const IdealGasLaw &eos, GridArray &U)
     const double e_r = p_r / rho_r / (eos.gamma() - 1);
     const double E_r = rho_r * (e_r + 0.5 * u_r * u_r);
 
-    const double dx = geo.dx();
     grid_loop(U.grid(), [&](int i, int j, int k)
               {
-        const double x = i * dx;
+        const double x = geo.cell_center(i, 0);
         const std::array<int, 3> idx = {i, j, k};
 
         if (x < 0.5)
@@ -154,6 +127,6 @@ void save_timestamp(const std::string &filepath,
         const double E = U(idx, 2);
         const double e = E / rho - 0.5 * u * u;
         const double p = (gamma - 1) * rho * e;
-        file << i * geo.dx() << ", " << rho << ", " << u << ", " << p << ", " << e << "\n";
+        file << geo.cell_center(i, 0) << ", " << rho << ", " << u << ", " << p << ", " << e << "\n";
     }
 }

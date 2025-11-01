@@ -29,7 +29,7 @@ namespace hc
     {
     }
     //=============================================================================
-    Grid GridArray::grid() const
+    const Grid &GridArray::grid() const
     {
         return grid_;
     }

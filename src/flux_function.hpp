@@ -52,9 +52,23 @@ namespace hc
     class EulerFlux : public FluxFunction
     {
     public:
+        struct State
+        {
+            double rho;
+            std::array<double, 3> v;
+            double KE;
+            double E;
+            double e;
+            double p;
+        };
+
         EulerFlux(const EquationOfState *eos, int dim);
 
         const EquationOfState *eos() const;
+
+        State get_state(std::span<const double> U) const;
+
+        double operator()(const State &state, std::span<double> f, int dir) const;
 
         double operator()(std::span<const double> u, std::span<double> f, int dir) const override;
 

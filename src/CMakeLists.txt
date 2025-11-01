@@ -15,6 +15,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/flux_assembly.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/numerical_flux.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/equation_of_state.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/erk.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/advance_split.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/cfl_utils.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/vtk.cpp)
 

@@ -49,9 +49,9 @@ namespace hc
         const GridGeo *geo_;
         const double *dt_;
 
-        mutable std::vector<double> f_lf;
-        mutable std::vector<double> u_ri;
-        mutable std::vector<double> f_ri;
+        mutable std::vector<double> f_lf_;
+        mutable std::vector<double> u_ri_;
+        mutable std::vector<double> f_ri_;
     };
 
     class RusanovFlux : public NumericalFlux
@@ -62,5 +62,29 @@ namespace hc
         double compute_flux(std::span<const double> ul,
                             std::span<const double> ur,
                             std::span<double> f, int dir) const override;
+    };
+
+    class HLLFlux : public NumericalFlux
+    {
+    public:
+        HLLFlux(EulerFlux *flux);
+
+        double compute_flux(std::span<const double> ul,
+                            std::span<const double> ur,
+                            std::span<double> f, int dir) const override;
+    };
+
+    class HLLCFlux : public NumericalFlux
+    {
+    public:
+        HLLCFlux(EulerFlux *flux);
+
+        double compute_flux(std::span<const double> ul,
+                            std::span<const double> ur,
+                            std::span<double> f, int dir) const override;
+
+    private:
+        mutable std::vector<double> u_hllc_l_;
+        mutable std::vector<double> u_hllc_r_;
     };
 }

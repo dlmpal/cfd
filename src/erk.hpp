@@ -1,6 +1,7 @@
 #pragma once
 
 #include "grid_array.hpp"
+#include "numerical_flux.hpp"
 #include <functional>
 
 namespace hc
@@ -10,7 +11,7 @@ namespace hc
     {
     public:
         /// @brief Right-hand-side function F = F(t, S)
-        using RHSFunction = std::function<void(const GridArray &S, GridArray &rhs, double time)>;
+        using RHSFunction = std::function<void(const GridArray &S, GridArray &rhs, double time, double dt)>;
 
         /// @brief Create an Explicit Runge-Kutta integrator
         /// @param state State vector
@@ -61,5 +62,12 @@ namespace hc
     };
 
     /// @brief Create an ERK integrator of specific type
-    ERKIntegrator create_erk(const GridArray &state, ERKIntegrator::RHSFunction rhs, ERKType type);
+    ERKIntegrator create_erk(const GridArray &state,
+                             ERKIntegrator::RHSFunction rhs,
+                             ERKType type);
+
+    ERKIntegrator::RHSFunction create_rhs(const GridGeo &geo,
+                                          const NumericalFlux &nflux,
+                                          double &smax,
+                                          bool use_halfstep = false);
 }

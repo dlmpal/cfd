@@ -43,9 +43,7 @@ namespace hc
         double dy() const;
         double dz() const;
 
-        // double cell_center(int i, int j, int k)
-        // {
-        // }
+        double cell_center(int idx, int dir) const;
 
     private:
         const Grid grid_;

@@ -10,6 +10,7 @@ namespace hc
 #include "numerical_flux.hpp"
 #include "flux_assembly.hpp"
 #include "erk.hpp"
+#include "advance_split.hpp"
 #include "cfl_utils.hpp"
 #include "equation_of_state.hpp"
 #include "vtk.hpp"

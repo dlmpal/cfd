@@ -1,4 +1,5 @@
 #include "erk.hpp"
+#include "flux_assembly.hpp"
 
 namespace hc
 {
@@ -31,7 +32,7 @@ namespace hc
                 double aij = coeffs_[i][j];
                 GridArray::axpy(dt * aij, stages_[j], S_new);
             }
-            rhs_(S_new, stages_[i], time + dt * nodes_[i]);
+            rhs_(S_new, stages_[i], time + dt * nodes_[i], dt);
         }
 
         // Evaluate the next state
@@ -120,5 +121,61 @@ namespace hc
             // SFEM_ERROR("Invalid ERK type\n");
             return ERKIntegrator(state, rhs, 0, {}, {}, {});
         }
+    }
+    //=============================================================================
+    ERKIntegrator::RHSFunction create_rhs(const GridGeo &geo,
+                                          const NumericalFlux &nflux,
+                                          double &smax,
+                                          bool use_halfstep)
+    {
+        return [&, use_halfstep](const GridArray &U, GridArray &rhs, double time, double dt)
+        {
+            rhs.set_all(0.0);
+
+            const FluxFunction &flux = *nflux.flux();
+            const int dim = flux.dim();
+            const int n_comp = flux.n_comp();
+
+            const Grid &grid = U.grid();
+            const auto [xlow, ylow, zlow] = grid.start();
+            const auto [xhigh, yhigh, zhigh] = grid.end();
+
+            // Compute face fluxes (per direction)
+            for (int dir = 0; dir < flux.dim(); dir++)
+            {
+                std::array<int, 3> n_ghost = {};
+                n_ghost[dir] = U.n_ghost(dir);
+
+                GridArray slopes(grid, n_comp, n_ghost);
+                compute_slopes(U, slopes, dir);
+                slopes.fill_boundary(dir);
+
+                GridArray F(grid, n_comp, n_ghost);
+                const double smax_ = compute_fluxes(slopes, U, nflux, geo, F, dt, dir, use_halfstep);
+                if (smax_ > smax)
+                {
+                    smax = smax_;
+                }
+
+                for (int n = 0; n < n_comp; n++)
+                {
+                    for (int k = zlow; k < zhigh; k++)
+                    {
+                        for (int j = ylow; j < yhigh; j++)
+                        {
+                            for (int i = xlow; i < xhigh; i++)
+                            {
+                                std::array<int, 3> idx_left = {i, j, k};
+                                std::array<int, 3> idx_right = {i, j, k};
+                                idx_right[dir] += 1;
+
+                                const double df = F(idx_right, n) - F(idx_left, n);
+                                rhs(i, j, k, n) -= geo.invdX(dir) * df;
+                            }
+                        }
+                    }
+                }
+            }
+        };
     }
 }

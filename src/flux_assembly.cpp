@@ -108,7 +108,7 @@ namespace hc
         std::array<int, 3> nodality = {};
         nodality[dir] = 1;
 
-        const Grid &grid = U.grid().convert(nodality);
+        const Grid grid = U.grid().convert(nodality);
         const auto [xlow, ylow, zlow] = grid.start();
         const auto [xhigh, yhigh, zhigh] = grid.end();
 
